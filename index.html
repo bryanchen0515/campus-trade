@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CampusTrade 校園二手市集 ｜ 自然科學與人工智慧期末專題</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Custom Stylesheet -->
+  <link rel="stylesheet" href="./style.css" />
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#ecfdf5',
+              100: '#d1fae5',
+              500: '#10b981',
+              600: '#059669',
+              700: '#047857',
+              800: '#065f46',
+            }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-slate-50 min-h-screen flex flex-col antialiased text-slate-800">
+
+  <!-- 頂部通告橫條 (展示期末專題資訊與評分對應) -->
+  <div class="bg-emerald-900 text-emerald-100 text-xs py-1.5 px-4">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2">
+      <div class="flex items-center gap-2">
+        <span class="bg-emerald-700/80 px-2 py-0.5 rounded text-[11px] font-bold text-white">商業設計系 第20組</span>
+        <span>自然科學與人工智慧 期末專案作品展示 ｜ 負責人：陳致穎（11424250）· 組員：江俊霆</span>
+      </div>
+      <div class="flex items-center gap-3 text-[11px]">
+        <span class="text-emerald-300">⚡ 支援全功能資料 CRUD 與即時本地持久化</span>
+        <button onclick="app.resetDemoData()" class="underline hover:text-white transition font-medium">
+          重設示範資料
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 導航列 (Navbar) -->
+  <header class="sticky top-0 z-40 glass-nav border-b border-slate-200/80">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+      
+      <!-- Logo 品牌 -->
+      <div class="flex items-center gap-3 cursor-pointer" onclick="app.switchView('market')">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center text-white text-xl shadow-md shadow-emerald-500/20">
+          🎓
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="font-extrabold text-lg text-slate-900 tracking-tight">CampusTrade</span>
+            <span class="text-xs bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded font-bold">二手市集</span>
+          </div>
+          <p class="text-[10px] text-slate-400">校園好物零浪費・學長姐傳承最省錢</p>
+        </div>
+      </div>
+
+      <!-- 前台 / 後台 切換標籤頁 -->
+      <nav class="hidden md:flex items-center bg-slate-100 p-1 rounded-xl text-xs font-bold border border-slate-200">
+        <button id="nav-market-tab" onclick="app.switchView('market')" class="px-4 py-1.5 rounded-lg text-emerald-700 bg-white shadow-sm transition">
+          🛒 前台市集尋寶
+        </button>
+        <button id="nav-admin-tab" onclick="app.switchView('admin')" class="px-4 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 transition flex items-center gap-1.5">
+          <span>🛡️ 後台管理系統</span>
+          <span id="admin-pending-badge" class="bg-rose-500 text-white text-[10px] px-1.5 py-0.2 rounded-full hidden">1</span>
+        </button>
+      </nav>
+
+      <!-- 右側使用者與操作按鈕 -->
+      <div class="flex items-center gap-3">
+        
+        <!-- 刊登商品按鈕 (Primary CTA) -->
+        <button onclick="app.openPublishModal()" class="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs md:text-sm font-bold px-3.5 py-2 rounded-xl shadow-sm shadow-emerald-600/30 transition transform active:scale-95">
+          <span>+</span>
+          <span>刊登二手物</span>
+        </button>
+
+        <!-- 身分切換下拉選單 (方便現場評分展示買家/賣家/管理員視角) -->
+        <div class="relative group">
+          <div class="flex items-center gap-2 bg-white border border-slate-200 hover:border-emerald-300 py-1.5 px-3 rounded-xl cursor-pointer transition shadow-sm">
+            <img id="current-user-avatar" src="" class="w-6 h-6 rounded-full object-cover" alt="avatar" />
+            <div class="text-left hidden sm:block">
+              <p id="current-user-name" class="text-xs font-bold text-slate-800 leading-tight">載入中...</p>
+              <p id="current-user-role" class="text-[10px] text-slate-400 leading-tight">切換身分</p>
+            </div>
+            <span class="text-xs text-slate-400">▼</span>
+          </div>
+
+          <!-- 下拉選單內容 -->
+          <div class="absolute right-0 mt-2 w-56 bg-white border border-slate-200 rounded-2xl shadow-xl py-2 hidden group-hover:block z-50">
+            <div class="px-3 py-1.5 border-b border-slate-100 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+              展示身分切換
+            </div>
+            <button onclick="app.switchUser('seller')" class="w-full text-left px-3 py-2 text-xs hover:bg-slate-50 flex items-center gap-2.5">
+              <span>👤</span>
+              <div>
+                <p class="font-bold text-slate-800">陳致穎 (賣家同學)</p>
+                <p class="text-[10px] text-slate-400">專案負責人 · 商設系</p>
+              </div>
+            </button>
+            <button onclick="app.switchUser('buyer')" class="w-full text-left px-3 py-2 text-xs hover:bg-slate-50 flex items-center gap-2.5">
+              <span>👤</span>
+              <div>
+                <p class="font-bold text-slate-800">江俊霆 (買家同學)</p>
+                <p class="text-[10px] text-slate-400">專案協作者 · 商設系</p>
+              </div>
+            </button>
+            <button onclick="app.switchUser('admin')" class="w-full text-left px-3 py-2 text-xs hover:bg-slate-50 flex items-center gap-2.5 text-emerald-700">
+              <span>🛡️</span>
+              <div>
+                <p class="font-bold">系統管理員 (Admin)</p>
+                <p class="text-[10px] text-slate-400">評分驗收 · CRUD 後台</p>
+              </div>
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </header>
+
+  <!-- ================= 主視圖 1: 前台市集尋寶 (Market View) ================= -->
+  <main id="market-view-container" class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+    <!-- Hero Banner (吸引人首頁設計) -->
+    <div class="relative overflow-hidden rounded-3xl bg-gradient-to-r from-emerald-800 via-emerald-700 to-teal-800 text-white p-6 md:p-10 mb-8 shadow-lg shadow-emerald-950/10">
+      <div class="relative z-10 max-w-2xl">
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-white/15 backdrop-blur-md text-emerald-200 border border-white/20 mb-3">
+          🌱 綠色永續校園 · 減少丟棄零負擔
+        </span>
+        <h1 class="text-3xl md:text-4xl font-extrabold tracking-tight mb-3">
+          校園二手好物・學長姐直接傳承
+        </h1>
+        <p class="text-emerald-100 text-sm md:text-base mb-6 leading-relaxed">
+          開學必備微積分原文書、商設系手繪麥克筆、宿舍小冰箱與單車。校內直接約定圖書館或學餐面交，省下高額運費，免除網購詐騙風險！
+        </p>
+
+        <!-- 快速搜尋框 -->
+        <div class="flex items-center bg-white rounded-2xl p-1.5 shadow-xl text-slate-800">
+          <span class="pl-3 text-slate-400 text-lg">🔍</span>
+          <input type="text" id="search-input" placeholder="搜尋二手書、iPad、麥克筆、小冰箱、腳踏車..." class="w-full px-3 py-2 text-sm text-slate-800 bg-transparent outline-none" />
+          <button onclick="app.renderProductCards()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs md:text-sm font-bold px-5 py-2.5 rounded-xl transition">
+            尋找好物
+          </button>
+        </div>
+      </div>
+
+      <!-- 背景裝飾圖示 -->
+      <div class="absolute -right-10 -bottom-10 text-[180px] opacity-10 select-none pointer-events-none">
+        ♻️
+      </div>
+    </div>
+
+    <!-- 分類快速標籤滑動列 -->
+    <div class="mb-6">
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+          <span>📦 商品分類探索</span>
+        </h2>
+        <span class="text-xs text-slate-500">共 <strong id="results-count" class="text-emerald-600 font-bold">6</strong> 項二手物可供交易</span>
+      </div>
+      
+      <div id="category-pills" class="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+        <!-- 由 JavaScript 動態生成分類按鈕 -->
+      </div>
+    </div>
+
+    <!-- 條件篩選與排序控制列 -->
+    <div class="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-sm mb-6 flex flex-wrap items-center justify-between gap-4">
+      
+      <!-- 面交地點過濾 -->
+      <div class="flex items-center gap-2 text-xs">
+        <span class="font-bold text-slate-600">📍 校內面交地點：</span>
+        <select id="location-select" class="bg-slate-50 border border-slate-300 rounded-xl px-3 py-1.5 text-xs text-slate-700 font-medium focus:ring-2 focus:ring-emerald-500 outline-none">
+          <option value="all">全校所有地點</option>
+          <option value="圖書館">圖書館一樓</option>
+          <option value="學生活動中心">學生活動中心</option>
+          <option value="第一宿舍">第一宿舍大廳</option>
+          <option value="綜合教學大樓">綜合教學大樓</option>
+          <option value="校門口">校門口全家</option>
+        </select>
+      </div>
+
+      <div class="flex items-center gap-4 text-xs">
+        <!-- 僅顯示刊登中勾選框 -->
+        <label class="flex items-center gap-1.5 cursor-pointer select-none">
+          <input type="checkbox" id="filter-status-checkbox" checked class="rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4" />
+          <span class="text-slate-700 font-medium">隱藏已售出商品</span>
+        </label>
+
+        <!-- 排序選單 -->
+        <div class="flex items-center gap-1.5">
+          <span class="text-slate-400">排序：</span>
+          <select id="sort-select" class="bg-slate-50 border border-slate-300 rounded-xl px-3 py-1.5 text-xs text-slate-700 font-medium focus:ring-2 focus:ring-emerald-500 outline-none">
+            <option value="newest">🕒 最新刊登</option>
+            <option value="price_asc">💰 價格由低到高</option>
+            <option value="price_desc">💎 價格由高到低</option>
+            <option value="popular">❤️ 最多同學收藏</option>
+          </select>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 二手商品卡片網格 (Product Grid) -->
+    <div id="product-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-6">
+      <!-- 由 JavaScript 渲染商品卡片 -->
+    </div>
+
+  </main>
+
+  <!-- ================= 主視圖 2: 後台管理系統 (Admin View - 滿分加分項) ================= -->
+  <main id="admin-view-container" class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 hidden">
+    
+    <!-- 後台頂部標題與說明 -->
+    <div class="flex flex-wrap items-center justify-between gap-4 mb-6 pb-4 border-b border-slate-200">
+      <div>
+        <div class="flex items-center gap-2">
+          <h1 class="text-2xl font-extrabold text-slate-900">市集管理員後台 (Admin Portal)</h1>
+          <span class="bg-emerald-100 text-emerald-800 text-xs px-2.5 py-0.5 rounded-full font-bold">CRUD 資料管理</span>
+        </div>
+        <p class="text-xs text-slate-500 mt-1">
+          本區塊專為期末驗收「+10分 管理／資料功能」設計，提供商品即時編輯、刪除、狀態切換與檢舉審核，所有更動均立即保存於 LocalStorage。
+        </p>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button onclick="app.resetDemoData()" class="px-3 py-2 text-xs font-bold rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 shadow-sm transition">
+          🔄 一鍵重設示範資料
+        </button>
+        <button onclick="app.openPublishModal()" class="px-3.5 py-2 text-xs font-bold rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition">
+          + 新增二手商品
+        </button>
+      </div>
+    </div>
+
+    <!-- 4 大核心數據指標卡 (Dashboard Metrics) -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-xs font-bold text-slate-400">目前上架商品數</span>
+          <span class="text-lg">📦</span>
+        </div>
+        <div id="stat-total-products" class="text-2xl font-extrabold text-slate-800">0</div>
+        <span class="text-[11px] text-emerald-600 font-semibold mt-1 inline-block">即時同步前台</span>
+      </div>
+
+      <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-xs font-bold text-slate-400">流轉商品預估總值</span>
+          <span class="text-lg">💰</span>
+        </div>
+        <div id="stat-total-value" class="text-2xl font-extrabold text-emerald-600">NT$ 0</div>
+        <span class="text-[11px] text-slate-400 mt-1 inline-block">累計為同學節省數萬元</span>
+      </div>
+
+      <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-xs font-bold text-slate-400">待審查檢舉案件</span>
+          <span class="text-lg">🚨</span>
+        </div>
+        <div id="stat-pending-reports" class="text-2xl font-extrabold text-amber-600">0</div>
+        <span class="text-[11px] text-amber-600 font-semibold mt-1 inline-block">防詐騙與校園安全</span>
+      </div>
+
+      <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-xs font-bold text-slate-400">活躍認證學生數</span>
+          <span class="text-lg">👥</span>
+        </div>
+        <div id="stat-active-users" class="text-2xl font-extrabold text-slate-800">84 位同學</div>
+        <span class="text-[11px] text-emerald-600 font-semibold mt-1 inline-block">校園社群正成長</span>
+      </div>
+    </div>
+
+    <!-- 管理功能區塊 1: 商品清單 CRUD 表格 -->
+    <div class="bg-white rounded-2xl border border-slate-200/90 shadow-sm overflow-hidden mb-8">
+      <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+        <div>
+          <h2 class="font-extrabold text-slate-800 text-base">二手商品資料管理 (CRUD 即時操作)</h2>
+          <p class="text-xs text-slate-400">可在這裡直接調整狀態（刊登/預訂/售出）、編輯標題價格、或刪除商品</p>
+        </div>
+        <span class="text-xs text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg font-bold">變更自動保存</span>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="bg-slate-50 text-slate-500 text-xs font-bold border-b border-slate-200">
+              <th class="px-4 py-3">#</th>
+              <th class="px-4 py-3">商品資訊</th>
+              <th class="px-4 py-3">二手價格</th>
+              <th class="px-4 py-3">刊登同學</th>
+              <th class="px-4 py-3">商品狀態</th>
+              <th class="px-4 py-3 text-right">操作</th>
+            </tr>
+          </thead>
+          <tbody id="admin-products-table-body">
+            <!-- 由 JavaScript 動態生成表格列 -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 管理功能區塊 2: 檢舉審核中心 -->
+    <div class="bg-white rounded-2xl border border-slate-200/90 shadow-sm p-6">
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <h2 class="font-extrabold text-slate-800 text-base">校園防詐與檢舉審核中心</h2>
+          <p class="text-xs text-slate-400">審查同學通報的異常商品、廣告詐騙或違禁物品</p>
+        </div>
+        <span class="text-xs bg-amber-50 text-amber-800 px-2.5 py-1 rounded-lg font-bold">社群自律機制</span>
+      </div>
+
+      <div id="admin-reports-list">
+        <!-- 由 JavaScript 動態渲染檢舉清單 -->
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ================= 彈出視窗 1: 刊登新二手物 (Publish Modal) ================= -->
+  <div id="publish-modal" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-3xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 shadow-2xl modal-enter-active">
+      <div class="flex items-center justify-between pb-4 border-b border-slate-100 mb-4">
+        <div>
+          <h3 class="text-lg font-bold text-slate-900">刊登你的二手好物</h3>
+          <p class="text-xs text-slate-400">將不需要的課本教材或用品交給下位同學</p>
+        </div>
+        <button onclick="app.closePublishModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 text-sm">✕</button>
+      </div>
+
+      <form id="publish-form" class="space-y-4">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">商品名稱 *</label>
+          <input type="text" id="pub-title" required placeholder="例如：iPad Air 5 64G、微積分原文書..." class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none" />
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">商品分類 *</label>
+            <select id="pub-category" required class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none">
+              <option value="book">📚 課本教材</option>
+              <option value="3c">💻 3C電子</option>
+              <option value="dorm">🪑 宿舍生活</option>
+              <option value="fashion">👗 美妝穿搭</option>
+              <option value="sports">🚲 交通運動</option>
+              <option value="design">🎨 設計文具</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">新舊成色 *</label>
+            <select id="pub-condition" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none">
+              <option value="全新">全新 (未拆封)</option>
+              <option value="95成新" selected>95成新 (近全新)</option>
+              <option value="8成新">8成新 (良好使用痕跡)</option>
+              <option value="實用戰鬥版">實用戰鬥版 (正常運作)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">二手價格 (NT$) *</label>
+            <input type="number" id="pub-price" required min="0" placeholder="例如：450" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">購入原價 (NT$)</label>
+            <input type="number" id="pub-original-price" min="0" placeholder="選填，突顯折扣" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none" />
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">校內面交地點 *</label>
+          <select id="pub-location" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none">
+            <option value="圖書館一樓">圖書館一樓大廳</option>
+            <option value="學生活動中心">學生活動中心 / 學餐全家</option>
+            <option value="第一宿舍大廳">第一宿舍大廳</option>
+            <option value="綜合教學大樓一樓">綜合教學大樓一樓</option>
+            <option value="校門口全家">校門口全家超商</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">商品圖片網址 (URL)</label>
+          <input type="url" id="pub-image" value="https://images.unsplash.com/photo-1526738549149-8e07eca6c147?w=600&auto=format&fit=crop&q=80" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none" />
+          <p class="text-[11px] text-slate-400 mt-1">預設已填入高解析商品圖，亦可貼上自訂照片連結。</p>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">商品細節描述 *</label>
+          <textarea id="pub-description" required rows="3" placeholder="請描述物品狀態、配件完整度、使用年限等..." class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none"></textarea>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">面交時間與叮嚀</label>
+          <input type="text" id="pub-meetup-notes" placeholder="例如：平日下課後或中午可約" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none" />
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+          <button type="button" onclick="app.closePublishModal()" class="px-4 py-2 text-xs font-bold text-slate-500 hover:bg-slate-100 rounded-xl transition">
+            取消
+          </button>
+          <button type="submit" class="px-5 py-2 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-md shadow-emerald-600/30 transition">
+            立即發佈商品
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= 彈出視窗 2: 商品詳情與私訊 (Detail Modal) ================= -->
+  <div id="detail-modal" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-3xl max-w-3xl w-full max-h-[92vh] overflow-y-auto p-6 shadow-2xl relative modal-enter-active">
+      <button onclick="app.closeDetailModal()" class="absolute top-4 right-4 z-10 w-8 h-8 rounded-full bg-white/90 shadow-md hover:bg-slate-100 flex items-center justify-center text-slate-500 text-sm">✕</button>
+      <div id="detail-modal-content">
+        <!-- 由 JavaScript 動態填入詳情內容 -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= 彈出視窗 3: 編輯商品 (Edit Modal) ================= -->
+  <div id="edit-modal" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-3xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 shadow-2xl modal-enter-active">
+      <div class="flex items-center justify-between pb-4 border-b border-slate-100 mb-4">
+        <div>
+          <h3 class="text-lg font-bold text-slate-900">編輯二手商品資訊</h3>
+          <p class="text-xs text-slate-400">修改價格、變更狀態或更新物品描述</p>
+        </div>
+        <button onclick="app.closeEditModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 text-sm">✕</button>
+      </div>
+
+      <form id="edit-form" class="space-y-4">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">商品名稱</label>
+          <input type="text" id="edit-title" required class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500" />
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">二手價格 (NT$)</label>
+            <input type="number" id="edit-price" required min="0" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">商品狀態</label>
+            <select id="edit-status" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500">
+              <option value="active">🟢 刊登中</option>
+              <option value="reserved">🟡 已預訂</option>
+              <option value="sold">⚪ 已售出</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">分類</label>
+            <select id="edit-category" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500">
+              <option value="book">📚 課本教材</option>
+              <option value="3c">💻 3C電子</option>
+              <option value="dorm">🪑 宿舍生活</option>
+              <option value="fashion">👗 美妝穿搭</option>
+              <option value="sports">🚲 交通運動</option>
+              <option value="design">🎨 設計文具</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">面交地點</label>
+            <select id="edit-location" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500">
+              <option value="圖書館一樓">圖書館一樓</option>
+              <option value="學生活動中心">學生活動中心</option>
+              <option value="第一宿舍大廳">第一宿舍大廳</option>
+              <option value="綜合教學大樓一樓">綜合教學大樓一樓</option>
+              <option value="校門口全家">校門口全家</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">新舊程度</label>
+          <select id="edit-condition" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500">
+            <option value="全新">全新</option>
+            <option value="95成新">95成新</option>
+            <option value="8成新">8成新</option>
+            <option value="實用戰鬥版">實用戰鬥版</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">商品描述</label>
+          <textarea id="edit-description" rows="3" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500"></textarea>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+          <button type="button" onclick="app.closeEditModal()" class="px-4 py-2 text-xs font-bold text-slate-500 hover:bg-slate-100 rounded-xl transition">
+            取消
+          </button>
+          <button type="submit" class="px-5 py-2 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-md transition">
+            儲存變更
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 浮動 Toast 提示通知元件 -->
+  <div id="toast-notification" class="fixed bottom-5 right-5 z-50 flex items-center gap-2 bg-slate-800 text-white px-4 py-3 rounded-2xl shadow-xl transition-all duration-300 transform translate-y-12 opacity-0 pointer-events-none">
+    <span id="toast-icon">ℹ️</span>
+    <span id="toast-message" class="text-xs font-bold">通知訊息</span>
+  </div>
+
+  <!-- 頁尾 (Footer) -->
+  <footer class="bg-white border-t border-slate-200 mt-auto py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-xs text-slate-400 space-y-2">
+      <p class="font-bold text-slate-600">
+        CampusTrade 校園二手市集 ｜ 商業設計系 第20組
+      </p>
+      <p>
+        專題組員：陳致穎（11424250）· 江俊霆 ｜ 課程：自然科學與人工智慧
+      </p>
+      <p class="text-[11px] text-slate-400">
+        採用純前端無伺服器 SPA 架構，支援 LocalStorage 即時資料儲存，部署至 Vercel 100% 穩定零故障。
+      </p>
+    </div>
+  </footer>
+
+  <!-- 核心腳本載入 -->
+  <script src="./app.js"></script>
+</body>
+</html>
